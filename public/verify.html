@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giveaway Device Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; display: inline-block; max-width: 400px; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        button { background: #22c55e; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%; }
+        button:hover { background: #16a34a; }
+        #message { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🛡️ Device Verification</h2>
+        <p>Giveaway me participate karne ke liye apne device ko verify karein. Multi-accounts allowed nahi hain.</p>
+        <button id="verifyBtn" onclick="verifyDevice()">Verify & Join</button>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        async function getDeviceHash() {
+            const data = navigator.userAgent + navigator.language + screen.width + screen.height + new Date().getTimezoneOffset();
+            const encoder = new TextEncoder();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function verifyDevice() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const giveawayId = urlParams.get('gid');
+            const btn = document.getElementById('verifyBtn');
+            const msg = document.getElementById('message');
+
+            btn.disabled = true;
+            msg.innerText = "Verifying device...";
+
+            const deviceHash = await getDeviceHash();
+            const userId = Math.floor(Math.random() * 1000000000); 
+
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ giveawayId, userId, deviceHash })
+                });
+                const result = await response.json();
+                msg.innerText = result.message;
+                if(result.success) {
+                    btn.style.background = "#3b82f6";
+                    btn.innerText = "Verified Successfully 🎉";
+                } else {
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                msg.innerText = "Something went wrong. Try again.";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
